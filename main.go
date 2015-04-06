@@ -144,12 +144,20 @@ func hex2ascii(ciphertext string) string {
 }
 
 func decrypt(cipherblocks []string, key []byte) {
+	var plaintext string
+
 	for _, v := range cipherblocks {
 		for j, w := range v {
-			fmt.Printf("%c", byte(w)^key[j])
+			decchar := byte(w) ^ key[j]
+			if decchar < 32 || decchar > 127 {
+				return
+			}
+			plaintext += string(decchar)
+			//fmt.Printf("%c", byte(w)^key[j])
 		}
 	}
-	fmt.Println("")
+	fmt.Printf("%x\n", key)
+	fmt.Printf("%s\n", plaintext)
 }
 
 func nextIndex(lutsearch []int, choices int) {
@@ -170,14 +178,22 @@ func main() {
 	keylength := guessKeyLength(ciphertext)
 	cipherblocks := breakCipherToKeyChunk(ciphertext, keylength)
 
-	freqAnalysis := analyzeCipherblocks(cipherblocks)
+	//	freqAnalysis := analyzeCipherblocks(cipherblocks)
 
 	//	for i := 0; i < 3; i++ {
-	lutsearch := make([]int, keylength)
+	for i := 0; i < 255; i++ {
+		for j := 0; j < 255; j++ {
+			key := []byte{byte(i), 0x1F, 0x95, byte(j), 0x53, 0x88, 0x3e}
+
+			decrypt(cipherblocks, key)
+		}
+	}
+
+	/*lutsearch := make([]int, keylength)
 	for ; lutsearch[0] < 3; nextIndex(lutsearch, 3) {
 		key := guessKey(cipherblocks, freqAnalysis, lutsearch)
 		decrypt(cipherblocks, key)
-	}
+	}*/
 
 	//	}
 }

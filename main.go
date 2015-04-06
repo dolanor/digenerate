@@ -78,7 +78,7 @@ func breakCipherToKeyChunk(ciphertext string, keylength int) []string {
 	}
 	c := make([]string, len(cipherblocks))
 	for i, v := range cipherblocks {
-		c[i] = hex.EncodeToString(v)
+		c[i] = hex.EncodeToString([]byte(v))
 	}
 
 	fmt.Print(c)
@@ -87,34 +87,50 @@ func breakCipherToKeyChunk(ciphertext string, keylength int) []string {
 
 type Letter struct {
 	Letter byte
-	Count int
+	Count  int
 }
 
 type LetterFreqList []Letter
+
+func (lfl LetterFreqList) Swap(i, j int)      { lfl[i], lfl[j] = lfl[j], lfl[i] }
+func (lfl LetterFreqList) Len() int           { return len(lfl) }
+func (lfl LetterFreqList) Less(i, j int) bool { return lfl[i].Count < lfl[j].Count }
+
 type PositionFreq []LetterFreqList
 
-func analyzeLetterFrequencies(cipherblocks []string) {
+func analyzeCipherblocks(cipherblocks []string) PositionFreq {
 	kl := len(cipherblocks[0])
-	posfreq := make(PositionFreq, kl)
+
+	analysis := make([]map[uint8]int, kl)
 	for i := 0; i < kl; i++ {
-		mmap := make(map[string]int)
-		for _, v := range cipherblocks {
-			mmap[v[i]]++
+		analysis[i] = make(map[uint8]int)
+		for j := 0; j < len(cipherblocks)-1; j++ {
+			analysis[i][cipherblocks[j][i]] += 1
 		}
-		l := make(DigraphPairList, len(mmap))
-		for k, v := range mmap {
-			l[k] = v
-
 	}
+	orderedAnalysis := make(PositionFreq, kl)
+	for i, v := range analysis {
+		orderedAnalysis[i] = make(LetterFreqList, len(v))
+		j := 0
+		for k, w := range v {
+			orderedAnalysis[i][j] = Letter{k, w}
+			j++
+		}
+		sort.Sort(sort.Reverse(orderedAnalysis[i]))
+		orderedAnalysis[i] = orderedAnalysis[i][:3]
+	}
+	fmt.Println(orderedAnalysis)
+	return orderedAnalysis
+}
 
-	for i, v := range cipherblocks {
-		posfreq[i] := 
-
-func guessKey(ciphertext string, keylength int) {
-	cipherblocks := breakCipherToKeyChunk(ciphertext, keylength)
-	
-	analyzeLetterFrequencies(cipherblocks)
-
+func guessKey(cipherblocks []string, freqAnalysis PositionFreq, lutsearch []int) []byte {
+	kl := len(cipherblocks[0])
+	guessedKey := make([]byte, kl)
+	for i, v := range freqAnalysis {
+		guessedKey[i] = v[lutsearch[i]].Letter ^ byte('e')
+	}
+	fmt.Printf("%x\n", guessedKey)
+	return guessedKey
 }
 
 func hex2ascii(ciphertext string) string {
@@ -127,11 +143,41 @@ func hex2ascii(ciphertext string) string {
 	return string(cipherbyte)
 }
 
+func decrypt(cipherblocks []string, key []byte) {
+	for _, v := range cipherblocks {
+		for j, w := range v {
+			fmt.Printf("%c", byte(w)^key[j])
+		}
+	}
+	fmt.Println("")
+}
+
+func nextIndex(lutsearch []int, choices int) {
+	for i := len(lutsearch) - 1; i >= 0; i-- {
+		lutsearch[i]++
+		if i == 0 || lutsearch[i] < choices {
+			return
+		}
+		lutsearch[i] = 0
+	}
+}
+
 func main() {
 	ciphertext := os.Args[1]
 	ciphertext = hex2ascii(ciphertext)
 
 	fmt.Println(ciphertext)
 	keylength := guessKeyLength(ciphertext)
-	guessKey(ciphertext, keylength)
+	cipherblocks := breakCipherToKeyChunk(ciphertext, keylength)
+
+	freqAnalysis := analyzeCipherblocks(cipherblocks)
+
+	//	for i := 0; i < 3; i++ {
+	lutsearch := make([]int, keylength)
+	for ; lutsearch[0] < 3; nextIndex(lutsearch, 3) {
+		key := guessKey(cipherblocks, freqAnalysis, lutsearch)
+		decrypt(cipherblocks, key)
+	}
+
+	//	}
 }

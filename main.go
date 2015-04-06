@@ -50,7 +50,7 @@ func findMostUsedDigraph(ciphertext string) string {
 		for i := 0; i < len(ciphertext)-1; i++ {
 			if ciphertext[i:i+2] == currdigraph {
 				fmt.Printf("%d + 1 %x\n", digraphFreq[currdigraph], currdigraph)
-				digraphFreq[currdigraph] += 1
+				digraphFreq[currdigraph]++
 			}
 		}
 	}
@@ -105,7 +105,7 @@ func analyzeCipherblocks(cipherblocks []string) PositionFreq {
 	for i := 0; i < kl; i++ {
 		analysis[i] = make(map[uint8]int)
 		for j := 0; j < len(cipherblocks)-1; j++ {
-			analysis[i][cipherblocks[j][i]] += 1
+			analysis[i][cipherblocks[j][i]]++
 		}
 	}
 	orderedAnalysis := make(PositionFreq, kl)
